@@ -46,26 +46,56 @@ int main()
 	int nAddrLen = sizeof(sockaddr_in);
 	SOCKET _cSock = INVALID_SOCKET;
 
-	char msgBuf[] = "hello, i'm server";
+	
 
+	_cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
+	if (INVALID_SOCKET == _cSock)
+	{
+		cout << "accept invalid client socket" << endl;
+	}
+	cout << "new client add, socket = " << _cSock << " ip="  << inet_ntoa(clientAddr.sin_addr) << endl;
+	
+	char _recvBuf[128] = {};
 	while (true)
 	{
-		_cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
-		if (INVALID_SOCKET == _cSock)
+		//5.接收客户端数据
+		int nLen = recv(_cSock, _recvBuf, 128, 0);
+		if (nLen <= 0)
 		{
-			cout << "accept invalid client socket" << endl;
+			cout << "client already exit";
+			break;
 		}
-		cout << "new client add, ip=" << inet_ntoa(clientAddr.sin_addr)<< endl;
-		//5.send向客户端发送一条数据	
-		send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+		cout << "recevie data: " << _recvBuf << endl;
+		//6.处理请求
+		if (0 == strcmp(_recvBuf,"getName"))
+		{
+			//7.send向客户端发送一条数据
+			char msgBuf[] = "xiao qiang";
+			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+		}
+		else if (0 == strcmp(_recvBuf, "getAge"))
+		{
+			//7.send向客户端发送一条数据
+			char msgBuf[] = "80";
+			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+		}
+		else
+		{
+			char msgBuf[] = "???";
+			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+		}
+		
+		
 	}
 	
-   // 6.关闭套接字closesocket
+   // 8.关闭套接字closesocket
 	closesocket(_cSock);
 
 
     //清楚windows socket环境
 	WSACleanup();//关闭
+	cout << "exit system" << endl;
+	getchar();
 	return 0;
 }
 
