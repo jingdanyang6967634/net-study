@@ -9,6 +9,11 @@
 
 #pragma comment(lib,"ws2_32.lib")
 
+struct DataPackage
+{
+	int age;
+	char name[32];
+};
 using namespace std;
 int main()
 {
@@ -67,17 +72,11 @@ int main()
 		}
 		cout << "recevie data: " << _recvBuf << endl;
 		//6.处理请求
-		if (0 == strcmp(_recvBuf,"getName"))
+		if (0 == strcmp(_recvBuf,"getInfo"))
 		{
 			//7.send向客户端发送一条数据
-			char msgBuf[] = "xiao qiang";
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
-		}
-		else if (0 == strcmp(_recvBuf, "getAge"))
-		{
-			//7.send向客户端发送一条数据
-			char msgBuf[] = "80";
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+			DataPackage dp = {80,"zhangqiang"};
+			send(_cSock, (const char*)&dp, sizeof(DataPackage), 0);
 		}
 		else
 		{

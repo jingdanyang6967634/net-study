@@ -7,6 +7,11 @@
 
 using namespace std;
 #pragma comment(lib,"ws2_32.lib")
+struct DataPackage
+{
+	int age;
+	char name[32];
+};
 
 int main()
 {
@@ -53,7 +58,8 @@ int main()
 		int nlen = recv(_sock, recvBuf, 256, 0);
 		if (nlen > 0)
 		{
-			cout << recvBuf << endl;
+			DataPackage* dp = (DataPackage*)recvBuf;
+			cout << "accept data:" << dp->age <<" " << dp->name << endl;
 		}
 
 	}
