@@ -13,6 +13,36 @@ struct DataPackage
 	char name[32];
 };
 
+enum CMD
+{
+	CMD_LOGIN,
+	CMD_LOGINOUT,
+	CMD_ERROR
+};
+struct DataHeader
+{
+	short dataLength;
+	short cmd;
+};
+struct Login
+{
+	char userName[32];
+	char PassWord[32];
+};
+struct LoginResult
+{
+	int result;
+};
+struct Loginout
+{
+	char userName[32];
+};
+struct LoginoutResult
+{
+	int result;
+};
+
+
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);//调用API2代创建2.x版本
@@ -47,21 +77,39 @@ int main()
 			cout << "receive exit cmd" << endl;
 			break;
 		}
+		else if(0 == strcmp(cmdBuf, "login"))
+		{
+			Login login = {"lyd","lydmm"};
+			DataHeader dh = { sizeof(Login),CMD_LOGIN };
+			//5.向服务器发送请求命令
+			send(_sock, (const char *)&dh,sizeof(DataHeader),0);
+			send(_sock, (const char *)&login, sizeof(Login), 0);
+			//接收服务器返回数据
+			DataHeader retHeader = {};
+			LoginResult loginRet = {};
+			recv(_sock, (char *)&retHeader,sizeof(DataHeader),0);
+			recv(_sock, (char *)&loginRet, sizeof(LoginResult), 0);
+
+			cout << "LoginResult :" << loginRet.result << endl;
+		}
+		else if (0 == strcmp(cmdBuf, "loginout"))
+		{
+			Loginout logout = {"lyd"};
+			DataHeader dh = { sizeof(Loginout),CMD_LOGINOUT };
+			//5.向服务器发送请求命令
+			send(_sock,(const char*)&dh, sizeof(DataHeader), 0);
+			send(_sock,(const char*)&logout, sizeof(Loginout),0);
+
+			DataHeader retHeader = {};
+			LoginoutResult logoutRet = {};
+			recv(_sock, (char *)&retHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char *)&logoutRet, sizeof(LoginoutResult), 0);
+			cout << "LoginoutResult :" << logoutRet.result << endl;
+		}
 		else
 		{
-			//5.向服务器发送请求命令
-			send(_sock, cmdBuf,strlen(cmdBuf)+1,0);
+			cout << "not support cmd" << endl;
 		}
-
-		//6.接收服务器信息
-		char recvBuf[128] = {};
-		int nlen = recv(_sock, recvBuf, 256, 0);
-		if (nlen > 0)
-		{
-			DataPackage* dp = (DataPackage*)recvBuf;
-			cout << "accept data:" << dp->age <<" " << dp->name << endl;
-		}
-
 	}
 	//7.关闭套接字closesocket
 	closesocket(_sock);
