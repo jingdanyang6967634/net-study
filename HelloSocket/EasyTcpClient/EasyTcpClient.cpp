@@ -7,16 +7,12 @@
 
 using namespace std;
 #pragma comment(lib,"ws2_32.lib")
-struct DataPackage
-{
-	int age;
-	char name[32];
-};
-
 enum CMD
 {
 	CMD_LOGIN,
+	CMD_LOGIN_RESULT,
 	CMD_LOGINOUT,
+	CMD_LOGOUT_RESULT,
 	CMD_ERROR
 };
 struct DataHeader
@@ -24,23 +20,49 @@ struct DataHeader
 	short dataLength;
 	short cmd;
 };
-struct Login
+struct Login : public DataHeader
 {
+	//DataHeader header;
+	Login()
+	{
+		dataLength = sizeof(Login);
+		cmd = CMD_LOGIN;
+	}
 	char userName[32];
 	char PassWord[32];
 };
-struct LoginResult
+struct LoginResult : public DataHeader
 {
+	LoginResult()
+	{
+		dataLength = sizeof(LoginResult);
+		cmd = CMD_LOGIN_RESULT;
+		result = 0;
+	}
 	int result;
 };
-struct Loginout
+struct Loginout : public DataHeader
 {
+	Loginout()
+	{
+		dataLength = sizeof(Loginout);
+		cmd = CMD_LOGINOUT;
+	}
 	char userName[32];
 };
-struct LoginoutResult
+struct LoginoutResult : public DataHeader
 {
+	LoginoutResult()
+	{
+		dataLength = sizeof(LoginoutResult);
+		cmd = CMD_LOGOUT_RESULT;
+		result = 0;
+	}
 	int result;
 };
+
+
+
 
 
 int main()
@@ -79,30 +101,33 @@ int main()
 		}
 		else if(0 == strcmp(cmdBuf, "login"))
 		{
-			Login login = {"lyd","lydmm"};
-			DataHeader dh = { sizeof(Login),CMD_LOGIN };
+			Login login;
+			strcpy(login.userName, "lyd");
+			strcpy(login.PassWord, "lydmima");
+			//DataHeader dh = { sizeof(Login),CMD_LOGIN };
 			//5.向服务器发送请求命令
-			send(_sock, (const char *)&dh,sizeof(DataHeader),0);
+			//send(_sock, (const char *)&dh,sizeof(DataHeader),0);
 			send(_sock, (const char *)&login, sizeof(Login), 0);
 			//接收服务器返回数据
-			DataHeader retHeader = {};
+			//DataHeader retHeader = {};
 			LoginResult loginRet = {};
-			recv(_sock, (char *)&retHeader,sizeof(DataHeader),0);
+			//recv(_sock, (char *)&retHeader,sizeof(DataHeader),0);
 			recv(_sock, (char *)&loginRet, sizeof(LoginResult), 0);
 
 			cout << "LoginResult :" << loginRet.result << endl;
 		}
 		else if (0 == strcmp(cmdBuf, "loginout"))
 		{
-			Loginout logout = {"lyd"};
-			DataHeader dh = { sizeof(Loginout),CMD_LOGINOUT };
+			Loginout logout;
+			strcpy(logout.userName,"lyd");
+			//DataHeader dh = { sizeof(Loginout),CMD_LOGINOUT };
 			//5.向服务器发送请求命令
-			send(_sock,(const char*)&dh, sizeof(DataHeader), 0);
+			//send(_sock,(const char*)&dh, sizeof(DataHeader), 0);
 			send(_sock,(const char*)&logout, sizeof(Loginout),0);
 
-			DataHeader retHeader = {};
+			//DataHeader retHeader = {};
 			LoginoutResult logoutRet = {};
-			recv(_sock, (char *)&retHeader, sizeof(DataHeader), 0);
+			//recv(_sock, (char *)&retHeader, sizeof(DataHeader), 0);
 			recv(_sock, (char *)&logoutRet, sizeof(LoginoutResult), 0);
 			cout << "LoginoutResult :" << logoutRet.result << endl;
 		}
