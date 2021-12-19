@@ -100,7 +100,7 @@ int main()
 	int nAddrLen = sizeof(sockaddr_in);
 	SOCKET _cSock = INVALID_SOCKET;
 
-	
+
 
 	_cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
 	if (INVALID_SOCKET == _cSock)
@@ -112,9 +112,10 @@ int main()
 	char _recvBuf[128] = {};
 	while (true)
 	{
-		DataHeader header = {};
-		//5.接收客户端数据
-		int nLen = recv(_cSock, (char *)&header, sizeof(DataHeader), 0);
+		char szRecv[4096] = {};
+		//5.接收客户端数据	
+		int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
+		DataHeader *header = (DataHeader *)szRecv;
 		if (nLen <= 0)
 		{
 			cout << "client already exit";
@@ -122,13 +123,15 @@ int main()
 		}
 		//cout << "recevie cmd: " << header.cmd << "data length:" << header.dataLength << endl;
 		//6.处理请求
-		switch (header.cmd)
+		switch (header->cmd)
 		{
 		case CMD_LOGIN:
 		{
-			Login login = {};
-			recv(_cSock, (char *)&login+sizeof(DataHeader), sizeof(Login)-sizeof(DataHeader), 0);
-			cout << "recevie cmd: " << login.cmd << "data length:" << login.dataLength << "userName:" << login.userName << endl;
+			
+			recv(_cSock, szRecv +sizeof(DataHeader), header->dataLength -sizeof(DataHeader), 0);
+			Login *login = (Login *)szRecv;
+
+			cout << "recevie cmd: " << login->cmd << "data length:" << login->dataLength << "userName:" << login->userName << endl;
 			//忽略判断用户密码是否正确的过程
 			LoginResult ret;
 			//send(_cSock, (char *)&header, sizeof(DataHeader), 0);
@@ -137,9 +140,10 @@ int main()
 		break;
 		case CMD_LOGINOUT:
 		{
-			Loginout loginout = {};
-			recv(_cSock, (char *)&loginout + sizeof(DataHeader), sizeof(Loginout) - sizeof(DataHeader), 0);
-			cout << "recevie cmd: " << loginout.cmd << "data length:" << loginout.dataLength << "userName:" << loginout.userName << endl;
+			
+			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+			Loginout *loginout = (Loginout *)szRecv;
+			cout << "recevie cmd: " << loginout->cmd << "data length:" << loginout->dataLength << "userName:" << loginout->userName << endl;
 			//忽略判断用户密码是否正确的过程
 			LoginoutResult ret;
 			//send(_cSock, (char *)&header, sizeof(DataHeader), 0);
@@ -148,8 +152,9 @@ int main()
 		break;
 		default:
 		{
-			header.cmd = CMD_ERROR;
-			header.dataLength = 0;
+			DataHeader header = {0,CMD_ERROR };
+			//header->cmd = CMD_ERROR;
+			//header->dataLength = 0;
 			send(_cSock, (char *)&header, sizeof(DataHeader), 0);
 		}
 		break;
