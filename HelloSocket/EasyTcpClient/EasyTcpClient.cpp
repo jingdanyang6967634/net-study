@@ -4,6 +4,7 @@
 #include <iostream>
 #include<WinSock2.h>
 #include<windows.h>
+#include<thread>
 
 using namespace std;
 #pragma comment(lib,"ws2_32.lib")
@@ -113,7 +114,38 @@ int processor(SOCKET _cSock)
 		break;
 	}
 }
-
+bool g_bRun = true;
+void cmdThread(SOCKET sock)
+{
+	while (true)
+	{
+		char cmdBuf[256] = {};
+		scanf("%s", cmdBuf);
+		if (0 == strcmp(cmdBuf, "exit"))
+		{
+			g_bRun = false;
+			cout << "退出" << endl;
+			break;
+		}
+		else if (0 == strcmp(cmdBuf, "login"))
+		{
+			Login login;
+			strcpy(login.userName, "lyd");
+			strcpy(login.PassWord, "lyd");
+			send(sock, (const char*)&login, sizeof(Login), 0);
+		}
+		else if (0 == strcmp(cmdBuf, "logout"))
+		{
+			Loginout logout;
+			strcpy(logout.userName, "lyd");
+			send(sock, (const char*)&logout, sizeof(Loginout), 0);
+		}
+		else
+		{
+			cout << "不支持的命令" << endl;
+		}
+	}
+}
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);//调用API2代创建2.x版本
@@ -136,8 +168,11 @@ int main()
 	{
 		cout << "connect error" << endl;
 	}
-	char cmdBuf[128] = {};
-	while (true)
+	//启动线程
+	thread t1(cmdThread,_sock);
+	t1.detach();
+
+	while (g_bRun)
 	{
 		fd_set fdReads;
 		FD_ZERO(&fdReads);
@@ -158,12 +193,11 @@ int main()
 				break;
 			}
 		}
-		cout << "空闲时间处理其他业务。。。" << endl;
-		Login login;
-		strcpy(login.userName,"lyd");
-		strcpy(login.PassWord,"lyd");
-		send(_sock,(const char*)&login,sizeof(Login),0);
-		Sleep(1000);
+
+		//线程thread
+
+		
+		
 	}
 	//7.关闭套接字closesocket
 	closesocket(_sock);
