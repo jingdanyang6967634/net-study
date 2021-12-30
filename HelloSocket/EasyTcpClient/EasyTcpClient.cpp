@@ -13,6 +13,7 @@ enum CMD
 	CMD_LOGIN_RESULT,
 	CMD_LOGINOUT,
 	CMD_LOGOUT_RESULT,
+	CMD_NEW_USER_JOIN,
 	CMD_ERROR
 };
 struct DataHeader
@@ -61,9 +62,57 @@ struct LoginoutResult : public DataHeader
 	int result;
 };
 
+struct NewUserJoin : public DataHeader
+{
+	NewUserJoin()
+	{
+		dataLength = sizeof(NewUserJoin);
+		cmd = CMD_NEW_USER_JOIN;
+		sock = 0;
+	}
+	int sock;
+};
 
+int processor(SOCKET _cSock)
+{
+	char szRecv[4096] = {};
+	//5.接收客户端数据	
+	int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
+	DataHeader *header = (DataHeader *)szRecv;
+	if (nLen <= 0)
+	{
+		cout << "与服务器断开连接，任务结束" << _cSock << endl;
+		return -1;
+	}
+	//6.处理请求
+	switch (header->cmd)
+	{
+		case CMD_LOGIN_RESULT:
+		{
+			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+			LoginResult *login = (LoginResult *)szRecv;
 
+			cout << "receive server data: CMD_LOGIN_RESULT,"  << "data length:" << login->dataLength << endl;
+		}
+		break;
+		case CMD_LOGOUT_RESULT:
+		{
+			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+			LoginoutResult *logout = (LoginoutResult *)szRecv;
 
+			cout << "receive server data: LoginoutResult," << "data length:" << logout->dataLength << endl;
+		}
+		break;
+		case CMD_NEW_USER_JOIN:
+		{
+			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+			NewUserJoin *userJoin = (NewUserJoin *)szRecv;
+
+			cout << "receive server data: NewUserJoin," << "data length:" << userJoin->dataLength << endl;
+		}
+		break;
+	}
+}
 
 int main()
 {
@@ -90,51 +139,31 @@ int main()
 	char cmdBuf[128] = {};
 	while (true)
 	{
-		//3.输入请求命令
-		//scanf("%s",cmdBuf);
-		cin >> cmdBuf;
-		//4.处理请求命令
-		if (0 == strcmp(cmdBuf,"exit"))
+		fd_set fdReads;
+		FD_ZERO(&fdReads);
+		FD_SET(_sock, &fdReads);
+		timeval t = {1,0};
+		int ret = select(_sock, &fdReads,0,0,&t);
+		if (ret < 0)
 		{
-			cout << "receive exit cmd" << endl;
+			cout << "select任务结束1" << endl;
 			break;
 		}
-		else if(0 == strcmp(cmdBuf, "login"))
+		if(FD_ISSET(_sock,&fdReads))
 		{
-			Login login;
-			strcpy(login.userName, "lyd");
-			strcpy(login.PassWord, "lydmima");
-			//DataHeader dh = { sizeof(Login),CMD_LOGIN };
-			//5.向服务器发送请求命令
-			//send(_sock, (const char *)&dh,sizeof(DataHeader),0);
-			send(_sock, (const char *)&login, sizeof(Login), 0);
-			//接收服务器返回数据
-			//DataHeader retHeader = {};
-			LoginResult loginRet = {};
-			//recv(_sock, (char *)&retHeader,sizeof(DataHeader),0);
-			recv(_sock, (char *)&loginRet, sizeof(LoginResult), 0);
-
-			cout << "LoginResult :" << loginRet.result << endl;
+			FD_CLR(_sock,&fdReads);
+			if (-1 == processor(_sock))
+			{
+				cout << "select任务结束2" << endl;
+				break;
+			}
 		}
-		else if (0 == strcmp(cmdBuf, "loginout"))
-		{
-			Loginout logout;
-			strcpy(logout.userName,"lyd");
-			//DataHeader dh = { sizeof(Loginout),CMD_LOGINOUT };
-			//5.向服务器发送请求命令
-			//send(_sock,(const char*)&dh, sizeof(DataHeader), 0);
-			send(_sock,(const char*)&logout, sizeof(Loginout),0);
-
-			//DataHeader retHeader = {};
-			LoginoutResult logoutRet = {};
-			//recv(_sock, (char *)&retHeader, sizeof(DataHeader), 0);
-			recv(_sock, (char *)&logoutRet, sizeof(LoginoutResult), 0);
-			cout << "LoginoutResult :" << logoutRet.result << endl;
-		}
-		else
-		{
-			cout << "not support cmd" << endl;
-		}
+		cout << "空闲时间处理其他业务。。。" << endl;
+		Login login;
+		strcpy(login.userName,"lyd");
+		strcpy(login.PassWord,"lyd");
+		send(_sock,(const char*)&login,sizeof(Login),0);
+		Sleep(1000);
 	}
 	//7.关闭套接字closesocket
 	closesocket(_sock);
@@ -143,14 +172,3 @@ int main()
 	getchar();
 	return 0;
 }
-
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
-
-// 入门使用技巧: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件

@@ -16,6 +16,7 @@ enum CMD
 	CMD_LOGIN_RESULT,
 	CMD_LOGINOUT,
 	CMD_LOGOUT_RESULT,
+	CMD_NEW_USER_JOIN,
 	CMD_ERROR
 };
 struct DataHeader
@@ -63,6 +64,17 @@ struct LoginoutResult : public DataHeader
 	}
 	int result;
 };
+
+struct NewUserJoin : public DataHeader
+{
+	NewUserJoin()
+	{
+		dataLength = sizeof(NewUserJoin);
+		cmd = CMD_NEW_USER_JOIN;
+		sock = 0;
+	}
+	int sock;
+};
 using namespace std;
 
 vector<SOCKET> g_clients;
@@ -74,7 +86,7 @@ int processor(SOCKET _cSock)
 	DataHeader *header = (DataHeader *)szRecv;
 	if (nLen <= 0)
 	{
-		cout << "client already exit";
+		cout << "client  _cSock:"<< _cSock << "already exit";
 		return -1;
 	}
 	//6.处理请求
@@ -86,7 +98,7 @@ int processor(SOCKET _cSock)
 		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 		Login *login = (Login *)szRecv;
 
-		cout << "recevie cmd: " << login->cmd << "data length:" << login->dataLength << "userName:" << login->userName << endl;
+		cout << "receive client socket:" << _cSock << "recevie cmd: " << login->cmd << "data length:" << login->dataLength << "userName:" << login->userName << endl;
 		//忽略判断用户密码是否正确的过程
 		LoginResult ret;
 		//send(_cSock, (char *)&header, sizeof(DataHeader), 0);
@@ -98,7 +110,7 @@ int processor(SOCKET _cSock)
 
 		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 		Loginout *loginout = (Loginout *)szRecv;
-		cout << "recevie cmd: " << loginout->cmd << "data length:" << loginout->dataLength << "userName:" << loginout->userName << endl;
+		cout << "receive client socket:" << _cSock << "recevie cmd: " << loginout->cmd << "data length:" << loginout->dataLength << "userName:" << loginout->userName << endl;
 		//忽略判断用户密码是否正确的过程
 		LoginoutResult ret;
 		//send(_cSock, (char *)&header, sizeof(DataHeader), 0);
@@ -165,7 +177,7 @@ int main()
 		{
 			FD_SET(g_clients[n], &fdRead);
 		}
-		timeval t = {0,0};
+		timeval t = {1,0};
 		int ret = select(_sock+1,&fdRead,&fdWrite, &fdExp, &t);
 		if (ret < 0)
 		{
@@ -184,8 +196,17 @@ int main()
 			{
 				cout << "accept invalid client socket" << endl;
 			}
-			g_clients.push_back(_cSock);
-			cout << "new client add, socket = " << (int)_cSock << " ip=" << inet_ntoa(clientAddr.sin_addr) << endl;	
+			else
+			{
+				//新用户加入群发消息
+				for (int n = (int)g_clients.size() - 1; n >= 0; n--)
+				{
+					NewUserJoin userJoin;
+					send(g_clients[n], (const char*)&userJoin, sizeof(NewUserJoin), 0);
+				}
+				g_clients.push_back(_cSock);
+				cout << "new client add, socket = " << (int)_cSock << " ip=" << inet_ntoa(clientAddr.sin_addr) << endl;
+			}	
 		}
 
 		for (size_t n = 0 ; n < fdRead.fd_count; n++)
@@ -199,6 +220,8 @@ int main()
 				}
 			}
 		}
+
+		cout << "空闲时间处理其他业务。。。" << endl;
 	}
 	
 	for (size_t n = g_clients.size() - 1; n >= 0; n--)
